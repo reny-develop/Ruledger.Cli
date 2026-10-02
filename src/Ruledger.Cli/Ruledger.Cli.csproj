@@ -42,7 +42,7 @@
     what a test design says would be one that could disagree with the one a host reads.
   -->
   <ItemGroup>
-    <PackageReference Include="Ruledger" Version="1.3.0" />
+    <PackageReference Include="Ruledger" Version="1.0.0" />
   </ItemGroup>
 
   <!--

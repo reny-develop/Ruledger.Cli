@@ -1,7 +1,7 @@
 ## Project
 Ruledger.Cli is [Ruledger](https://github.com/reny-develop/Ruledger) from a shell: `ruledger derive`, `ruledger diff` and `ruledger observe`. The walk, the test design and the diff are the `Ruledger` package's, taken from nuget.org like any host takes it; this tool prints what it answers. Nothing of a test design is worked out here — a second account of one could disagree with the one a host reads.
 
-The `dotnet tool` in `src/Ruledger.Cli/` (`net10.0`, nullable + implicit usings), and an xUnit suite in `test/` holding what it prints and what it exits with. It was in the Ruledger repository until 1.3.0, when the library became a package of its own; the history before that is there.
+The `dotnet tool` in `src/Ruledger.Cli/` (`net10.0`, nullable + implicit usings), and an xUnit suite in `test/` holding what it prints and what it exits with. It was in the Ruledger repository until 1.3.0, when the library became a package of its own, `Ruledger` 1.0.0; the history before that is there.
 
 Two documents must stay true: the README, and `doc/tutorial.md`, the half hour that shows what the tool is like. Every console transcript in them was captured from a run and has to stay a true prefix of what the command prints today. The tutorial downloads its rule sets from Ruledger's `verify/ruleset/`. The form of a test design is Ruledger's `doc/test-design.md`, linked and never restated.
 
