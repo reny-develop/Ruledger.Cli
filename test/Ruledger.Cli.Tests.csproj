@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Ruledger.Cli.Tests</RootNamespace>
+    <AssemblyName>Ruledger.Cli.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Ruledger.Cli\Ruledger.Cli.csproj" />
+  </ItemGroup>
+
+  <!--
+    The vocabularies the pinned rule sets draw on, which land beside the test assembly and
+    are found by scanning it. They are referenced rather than built from the sibling
+    repositories on purpose: a measurement is about a published vocabulary, and a plugin
+    rebuilt from whatever is checked out is not one.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Rulealize.Plugin.Arithmetic" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Binding" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Branch" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Chance" Version="1.1.0" />
+    <PackageReference Include="Rulealize.Plugin.Comparison" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Definition" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Grid" Version="1.2.0" />
+    <PackageReference Include="Rulealize.Plugin.Logic" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Record" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Sequence" Version="1.4.0" />
+    <PackageReference Include="Rulealize.Plugin.State" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.Tuple" Version="1.0.1" />
+    <PackageReference Include="Rulealize.Plugin.TypeSchema" Version="1.2.0" />
+  </ItemGroup>
+
+  <!--
+    The rule sets the tool is run on, pinned. They are copies of ones Ruledger measures, from its
+    verify/ruleset, and copies on purpose: what the tool prints about a document is a claim
+    about that document, and one that moved underneath it would turn the claim into a report
+    about whatever was there that day. Add one rather than change one.
+  -->
+  <ItemGroup>
+    <Content Include="ruleset\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
