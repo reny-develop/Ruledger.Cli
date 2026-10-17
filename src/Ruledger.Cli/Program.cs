@@ -136,8 +136,9 @@ static int Usage()
     Console.Error.WriteLine("  --outcomes <n>       outcomes to follow for one input   (default 64)");
     Console.Error.WriteLine();
     Console.Error.WriteLine("exit: 0 nothing to report, 1 could not be done, 2 command line not understood,");
-    Console.Error.WriteLine("      3 the rules decided differently, a choice could not be carried, or the two");
-    Console.Error.WriteLine("        versions are not compared on the same state");
+    Console.Error.WriteLine("      3 the rules decided differently, a choice could not be carried, the two");
+    Console.Error.WriteLine("        versions are not compared on the same state, or the test design says");
+    Console.Error.WriteLine("        nothing about the projections the rule set declares");
     Console.Error.WriteLine();
     Console.Error.WriteLine("'rulealize restore <rule set>' fills the folders this reads.");
     return Exit.Misread;

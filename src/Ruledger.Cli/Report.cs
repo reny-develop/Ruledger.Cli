@@ -36,6 +36,25 @@ namespace Ruledger.Cli
             }
 
             Console.WriteLine($"  {Observation(design.Observed, design.Collapsed)}");
+
+            // A projection the runtime faulted on is written down where it happened, and the
+            // walk went on; said here as well, so that it is not found only by reading the file.
+            if (design.Projections is { Count: > 0 } projections)
+            {
+                List<string> faulted =
+                [
+                    .. projections
+                        .Select(name => (Name: name, Count: design.States.Count(state =>
+                            state.Projections.Any(each => each.Name == name && each.Fault is not null))))
+                        .Where(static each => each.Count > 0)
+                        .Select(static each => $"{each.Name} faulted in {Counted(each.Count, "state", "states")}"),
+                ];
+
+                Console.WriteLine(faulted.Count is 0
+                    ? $"  saying {string.Join(", ", projections)}"
+                    : $"  saying {string.Join(", ", projections)} — {string.Join(", ", faulted)}");
+            }
+
             Console.WriteLine(
                 $"  at most {Number(design.Settings.States)} states, "
                 + $"{Number(design.Settings.Candidates)} candidates in a state, "

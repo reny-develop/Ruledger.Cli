@@ -23,7 +23,7 @@ namespace Ruledger.Cli
         /// <summary>The command line was not understood.</summary>
         public const int Misread = 2;
 
-        /// <summary>Done, and something is different: the rules moved, a choice could not be carried, or the two are not compared on the same state.</summary>
+        /// <summary>Done, and something is different: the rules moved, a choice could not be carried, the two are not compared on the same state, or the test design says nothing about the projections the rule set declares.</summary>
         public const int Different = 3;
     }
 }

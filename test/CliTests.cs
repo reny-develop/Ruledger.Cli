@@ -221,6 +221,108 @@ namespace Ruledger.Cli.Tests
             Assert.Contains("seats", said, StringComparison.Ordinal);
         }
 
+        // A projection the runtime faults on is written down where it happened and the walk
+        // goes on, and the tool says so rather than leaving it to be found in the file.
+        [Fact]
+        public void DeriveSaysWhichProjectionFaultedAndWhere()
+        {
+            string ruleSet = Copy("tally");
+
+            (int code, string said) = Run(() => DeriveCommand.Run(
+                ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            Assert.Equal(0, code);
+            Assert.Contains("77 states, none of them final", said, StringComparison.Ordinal);
+            Assert.Contains("saying atLeastTen, beatBest — beatBest faulted in 11 states", said, StringComparison.Ordinal);
+        }
+
+        // Ten became three, and nothing else did: the states that answer otherwise are listed
+        // with what they say now and what they said.
+        [Fact]
+        public void DiffSaysWhatAProjectionSaysNowAndWhatItSaid()
+        {
+            string ruleSet = Copy("tally");
+            string later = Copy("tally-three");
+            string written = Path.Combine(this.folder, "tally.test-design.json");
+            _ = Run(() => DeriveCommand.Run(ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            (int code, string said) = Run(() => DiffCommand.Run(written, later, Plugins, null, write: false));
+
+            Assert.Contains("77 states in both, 56 decided differently", said, StringComparison.Ordinal);
+            Assert.Contains("#3 = #2 + count: atLeastTen = true, was false", said, StringComparison.Ordinal);
+            Assert.Equal(3, code);
+        }
+
+        // A host reads a projection by name, so a rename is said once, as the names, and in no
+        // state.
+        [Fact]
+        public void DiffSaysAProjectionRenamedOnce()
+        {
+            string ruleSet = Copy("tally");
+            string later = Copy("tally-renamed");
+            string written = Path.Combine(this.folder, "tally.test-design.json");
+            _ = Run(() => DeriveCommand.Run(ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            (int code, string said) = Run(() => DiffCommand.Run(written, later, Plugins, null, write: false));
+
+            Assert.Contains("77 states in both, 0 decided differently", said, StringComparison.Ordinal);
+            Assert.Contains("atLeastTen: a projection no longer declared", said, StringComparison.Ordinal);
+            Assert.Contains("atLeastThree: a projection declared now, and was not", said, StringComparison.Ordinal);
+            Assert.Equal(3, code);
+        }
+
+        // A v3 test design said nothing about projections, so nothing about them is held
+        // against it; that is said, and it counts, because an empty diff on top of it would
+        // not mean what an empty diff means.
+        [Fact]
+        public void ADesignWrittenBeforeProjectionsSaysTheyAreNotHeldAgainstIt()
+        {
+            string ruleSet = Copy("tally");
+            string written = Path.Combine(this.folder, "tally.test-design.json");
+            _ = Run(() => DeriveCommand.Run(ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+            File.WriteAllText(written, File.ReadAllText(written)
+                .Replace("ruledger/test-design/v4", "ruledger/test-design/v3", StringComparison.Ordinal));
+
+            (int code, string said) = Run(() => DiffCommand.Run(written, ruleSet, Plugins, null, write: false));
+
+            Assert.Contains("77 states in both, 0 decided differently", said, StringComparison.Ordinal);
+            Assert.Contains("what atLeastTen, beatBest say is not held against it", said, StringComparison.Ordinal);
+            Assert.Equal(3, code);
+        }
+
+        // A guard the runtime faults on stops the walk, since without its answer there is no
+        // next state. That is the rule set's doing, said in the runtime's words, and the tool
+        // exits as it does for anything it could not do — not with a stack trace.
+        [Fact]
+        public void AGuardTheRuntimeFaultsOnIsReportedAsNotDone()
+        {
+            string ruleSet = Path.Combine(this.folder, "switch-fault.json");
+            File.WriteAllText(ruleSet, """
+                {
+                  "id": "switch-fault", "version": "1.0.0",
+                  "requires": [
+                    { "plugin": "Rulealize.Plugin.TypeSchema" }, { "plugin": "Rulealize.Plugin.State" },
+                    { "plugin": "Rulealize.Plugin.Comparison" }
+                  ],
+                  "state": { "schema": { "on": { "op": "type.bool" } }, "initial": { "on": false } },
+                  "inputs": {
+                    "off": {
+                      "when": { "op": "cmp.gte", "left": "$on", "right": 1 },
+                      "effects": [ { "op": "state.set", "path": "on", "value": false } ]
+                    }
+                  }
+                }
+                """);
+
+            (int code, string said) = Run(() => DeriveCommand.Run(
+                ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            Assert.Equal(1, code);
+            Assert.Contains("'" + ruleSet + "' could not be walked:", said, StringComparison.Ordinal);
+            Assert.Contains("cmp.gte: Cannot order false against the number 1", said, StringComparison.Ordinal);
+            Assert.False(File.Exists(Path.Combine(this.folder, "switch-fault.test-design.json")));
+        }
+
         private static string Plugins => AppContext.BaseDirectory;
 
         // Standard error is read along with standard output: what a command refuses to do is

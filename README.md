@@ -18,8 +18,8 @@ ruledger observe reversi.json      # what a position is compared on, and what is
 
 `diff` is meant for a build server: it exits 0 when there is nothing to report, 1 when it
 could not be done, 2 when the command line was not understood, and 3 when the rules decided
-differently, a choice could not be carried, or the two versions are not compared on the same
-state.
+differently, a choice could not be carried, the two versions are not compared on the same
+state, or the test design was written before projections were and the rule set declares some.
 
 **[doc/tutorial.md](doc/tutorial.md) is the half hour that shows what this is like** — reversi
 changed one line at a time, then a shift roster, ending in a count of what did not happen.

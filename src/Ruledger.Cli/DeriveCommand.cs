@@ -68,7 +68,12 @@ namespace Ruledger.Cli
             {
                 design = TestDesign.Derive(runtime, ruleSet, held, settings, carry.Edits);
             }
-            catch (Exception failure) when (failure is RuleSetBuildException or JsonException or InvalidOperationException)
+            // A guard or `terminal` the runtime faults on stops the walk, because without its
+            // answer there is no next state to go to. That is the rule set's fault and not the
+            // tool's, so it is reported in the runtime's words like any other reason this could
+            // not be done.
+            catch (Exception failure) when (failure is RuleSetBuildException or RuleDocumentException
+                or RuleEvaluationException or JsonException or InvalidOperationException)
             {
                 Console.Error.WriteLine($"'{ruleSetPath}' could not be walked:");
                 Console.Error.WriteLine($"  {failure.Message}");

@@ -57,7 +57,11 @@ namespace Ruledger.Cli
             {
                 diff = TestDesignDiff.Of(runtime, File.ReadAllText(testDesignPath), ruleSet, held);
             }
-            catch (Exception failure) when (failure is RuleSetBuildException or JsonException or InvalidOperationException)
+            // As in derive: a guard or `terminal` the runtime faults on stops the walk of the new
+            // version, and a test design that began in a state this version does not accept
+            // cannot be walked from there.
+            catch (Exception failure) when (failure is RuleSetBuildException or RuleDocumentException
+                or RuleEvaluationException or JsonException or InvalidOperationException)
             {
                 Console.Error.WriteLine($"'{testDesignPath}' could not be applied to '{ruleSetPath}':");
                 Console.Error.WriteLine($"  {failure.Message}");
@@ -89,6 +93,18 @@ namespace Ruledger.Cli
                 Console.WriteLine("    so where a route rejoined has moved, and some of what follows is that");
             }
 
+            // A test design written before projections were written down said nothing about
+            // them, so nothing about them is held against it. Said, rather than left to read as
+            // the projections having said what they always said, and it counts like the above.
+            bool unheld = diff.Before.Projections is null && diff.After.Projections is { Count: > 0 };
+            if (unheld)
+            {
+                Console.WriteLine();
+                Console.WriteLine("  the test design says nothing about projections, being written before they were:");
+                Console.WriteLine($"    what {string.Join(", ", diff.After.Projections!)} say is not held against it");
+                Console.WriteLine("    diff again with --write, and the next diff will hold it");
+            }
+
             // Named by the number the test design gives it, because that is the document
             // the person has open, and by this walk's number as well where the two differ.
             // How the walk arrives is the name that means the same in both, and it is not
@@ -99,6 +115,11 @@ namespace Ruledger.Cli
             Write(diff.Appeared.Select(state => $"{state}: reached now, and was not"));
             Write(diff.AdmitsMoved.Select(pair =>
                 $"{pair.After.Input}({pair.After.Parameter}) admits {pair.After.Schema}, was {pair.Before.Schema}"));
+
+            // Once by name and not in every state: a host reads a projection by its name, so
+            // one renamed is a field one client stops getting and another starts to.
+            Write(diff.ProjectionsGone.Select(static name => $"{name}: a projection no longer declared")
+                .Concat(diff.ProjectionsAppeared.Select(static name => $"{name}: a projection declared now, and was not")));
 
             if (diff.After.Edits.Count > 0)
             {
@@ -118,7 +139,7 @@ namespace Ruledger.Cli
             // walks rejoined in different places, so states held against each other were not
             // always the same states. A build that went green on that would be a build that
             // passed because nobody was told.
-            return diff.IsEmpty && all && diff.ComparedTheSameWay ? Exit.Done : Exit.Different;
+            return diff.IsEmpty && all && diff.ComparedTheSameWay && !unheld ? Exit.Done : Exit.Different;
         }
 
         private static void Write(IEnumerable<string> lines)
@@ -167,6 +188,7 @@ namespace Ruledger.Cli
 
             what.AddRange(change.Refusing.Select(static each => $"now {each}"));
             what.AddRange(change.NotRefusing.Select(static each => $"no longer {each}"));
+            what.AddRange(change.ProjectionsMoved.Select(static each => $"{each.After}, was {Answer(each.Before)}"));
 
             if (change.TruncationMoved)
             {
@@ -217,5 +239,8 @@ namespace Ruledger.Cli
 
         private static string Ending(TestDesignState state) =>
             state.IsTerminal ? "final " + (state.Result ?? "(no result)") : "not final";
+
+        private static string Answer(Projection projection) =>
+            projection.Fault is null ? projection.Value ?? "null" : "faulted: " + projection.Fault;
     }
 }
