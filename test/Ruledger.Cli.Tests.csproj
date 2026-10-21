@@ -49,7 +49,8 @@
     The rule sets the tool is run on, pinned. They are copies of ones Ruledger measures, from its
     verify/ruleset, and copies on purpose: what the tool prints about a document is a claim
     about that document, and one that moved underneath it would turn the claim into a report
-    about whatever was there that day. Add one rather than change one.
+    about whatever was there that day. Add one rather than change one. claim-start.json is the
+    state document claim-month starts its claims in, copied from verify/state.
   -->
   <ItemGroup>
     <Content Include="ruleset\*.json" CopyToOutputDirectory="PreserveNewest" />

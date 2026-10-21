@@ -63,10 +63,15 @@ namespace Ruledger.Cli
                 return Exit.Undone;
             }
 
+            if (Held.Starts(ruleSetPath, ruleSet, held, ruleSets) is not IReadOnlyDictionary<string, string> starts)
+            {
+                return Exit.Undone;
+            }
+
             TestDesign design;
             try
             {
-                design = TestDesign.Derive(runtime, ruleSet, held, settings, carry.Edits);
+                design = TestDesign.Derive(runtime, ruleSet, held, starts, null, settings, carry.Edits);
             }
             // A guard or `terminal` the runtime faults on stops the walk, because without its
             // answer there is no next state to go to. That is the rule set's fault and not the

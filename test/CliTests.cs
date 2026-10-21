@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Ruledger.Cli;
 
 namespace Ruledger.Cli.Tests
@@ -281,7 +282,7 @@ namespace Ruledger.Cli.Tests
             string written = Path.Combine(this.folder, "tally.test-design.json");
             _ = Run(() => DeriveCommand.Run(ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
             File.WriteAllText(written, File.ReadAllText(written)
-                .Replace("ruledger/test-design/v4", "ruledger/test-design/v3", StringComparison.Ordinal));
+                .Replace("ruledger/test-design/v5", "ruledger/test-design/v3", StringComparison.Ordinal));
 
             (int code, string said) = Run(() => DiffCommand.Run(written, ruleSet, Plugins, null, write: false));
 
@@ -321,6 +322,88 @@ namespace Ruledger.Cli.Tests
             Assert.Contains("'" + ruleSet + "' could not be walked:", said, StringComparison.Ordinal);
             Assert.Contains("cmp.gte: Cannot order false against the number 1", said, StringComparison.Ordinal);
             Assert.False(File.Exists(Path.Combine(this.folder, "switch-fault.test-design.json")));
+        }
+
+        // A month keeps each claim as a document of its own, in a store it names; the tool
+        // loads that store's plugin from the folder like any vocabulary, finds where a claim
+        // starts beside the month, and the walk ends rather than creating claims for as long
+        // as it is allowed to.
+        [Fact]
+        public void DeriveWalksAMonthThatKeepsItsClaims()
+        {
+            string ruleSet = Copy("claim-month");
+            _ = Copy("claim");
+            _ = Copy("claim-start");
+
+            (int code, string said) = Run(() => DeriveCommand.Run(
+                ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            Assert.Equal(0, code);
+            Assert.Contains("claim-month@1.0.0", said, StringComparison.Ordinal);
+            Assert.Contains("66 states, none of them final", said, StringComparison.Ordinal);
+            Assert.Contains("already followed from the same documents, not followed again", said, StringComparison.Ordinal);
+            Assert.DoesNotContain("the walk had no states left for", said, StringComparison.Ordinal);
+
+            JsonElement opening = JsonDocument.Parse(File.ReadAllText(Path.Combine(this.folder, "claim-month.test-design.json")))
+                .RootElement.GetProperty("states")[1];
+            Assert.Equal("claims/1", opening.GetProperty("documents")[1].GetProperty("at").GetString());
+        }
+
+        [Fact]
+        public void AStartThatIsNotThereIsRefused()
+        {
+            string ruleSet = Copy("claim-month");
+            _ = Copy("claim");
+
+            (int code, string said) = Run(() => DeriveCommand.Run(
+                ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            Assert.Equal(1, code);
+            Assert.Contains("claim-start.json", said, StringComparison.Ordinal);
+            Assert.False(File.Exists(Path.Combine(this.folder, "claim-month.test-design.json")));
+        }
+
+        [Fact]
+        public void AMonthDiffedAgainstItselfHasNothingToReport()
+        {
+            string ruleSet = Copy("claim-month");
+            _ = Copy("claim");
+            _ = Copy("claim-start");
+            _ = Run(() => DeriveCommand.Run(ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            (int code, string said) = Run(() => DiffCommand.Run(
+                Path.Combine(this.folder, "claim-month.test-design.json"), ruleSet, Plugins, null, write: false));
+
+            Assert.Equal(0, code);
+            Assert.Contains("66 states in both, 0 decided differently", said, StringComparison.Ordinal);
+        }
+
+        // Any seven characters is a month, so the walk goes to the months a person names in a
+        // choice's `at` and to no other; a choice at a month is carried like any choice, and one
+        // that names an input no month has is said with the month it was at.
+        [Fact]
+        public void AChoiceAtAMonthIsCarriedAndOneThatCannotBeIsNamedWithIt()
+        {
+            string ruleSet = Copy("claim-ledger");
+            _ = Copy("claim-month");
+            _ = Copy("claim");
+            _ = Copy("claim-start");
+            string written = Path.Combine(this.folder, "claim-ledger.test-design.json");
+            _ = Run(() => DeriveCommand.Run(ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            JsonNode design = JsonNode.Parse(File.ReadAllText(written))!;
+            design["edits"] = new JsonArray(
+                new JsonObject { ["state"] = "#0", ["input"] = "months.create", ["at"] = new JsonObject { ["months"] = "2026-10" } },
+                new JsonObject { ["state"] = "#0", ["input"] = "months.nonesuch", ["at"] = new JsonObject { ["months"] = "2026-11" } });
+            File.WriteAllText(written, design.ToJsonString());
+
+            (int code, string said) = Run(() => DeriveCommand.Run(
+                ruleSet, Plugins, null, null, null, new WalkSettings(States: 3000)));
+
+            Assert.Equal(3, code);
+            Assert.Contains("1 of 2 choices carried", said, StringComparison.Ordinal);
+            Assert.Contains("months.nonesuch@2026-11 is not legal in #0", said, StringComparison.Ordinal);
+            Assert.Contains("\"by\": \"months.create@2026-10\"", File.ReadAllText(written), StringComparison.Ordinal);
         }
 
         private static string Plugins => AppContext.BaseDirectory;

@@ -26,6 +26,13 @@ changed one line at a time, then a shift roster, ending in a count of what did n
 [Ruledger's doc/test-design.md](https://github.com/reny-develop/Ruledger/blob/main/doc/test-design.md)
 is the form of the document the two commands produce.
 
+A rule set whose `uses` holds something `many` — a month keeping each claim as a document of
+its own — names a store plugin in `requires`, and `rulealize restore` fetches it into the same
+folder as any vocabulary. The tool never opens that store: the walk keeps the documents in
+memory in its place. Where a `many` names a `start`, the state document new instances begin in
+is read from `<start>.json` beside the rule set, or in `--rulesets`, and a walk without it is
+refused rather than begun somewhere nobody said.
+
 What the tool prints is what the `Ruledger` package answers, put into lines for a person. A
 program that wants the answer itself — what a diff found, as values — takes the package, as this
 tool does.

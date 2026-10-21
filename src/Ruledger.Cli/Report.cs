@@ -37,6 +37,15 @@ namespace Ruledger.Cli
 
             Console.WriteLine($"  {Observation(design.Observed, design.Collapsed)}");
 
+            // A rule set that keeps instances writes a step already followed from the same
+            // documents as where it was, and does not follow it again. Said, so that a walk that
+            // ended is not read as one that reached every position.
+            int already = design.States.Sum(static state => state.Moves.Count(static move => move.Landings.Any(static landing => landing.As is not null)));
+            if (already > 0)
+            {
+                Console.WriteLine($"  {Counted(already, "move", "moves")} already followed from the same documents, not followed again");
+            }
+
             // A projection the runtime faulted on is written down where it happened, and the
             // walk went on; said here as well, so that it is not found only by reading the file.
             if (design.Projections is { Count: > 0 } projections)
@@ -142,9 +151,13 @@ namespace Ruledger.Cli
             _ => $"{Input(result.Edit)} was not chosen: {result.Edit.State} was not reached before the walk stopped",
         };
 
-        private static string Input(TestDesignEdit edit) =>
-            edit.Arguments.Count is 0
-                ? edit.Input
-                : $"{edit.Input}({string.Join(", ", edit.Arguments.Select(argument => $"{argument.Key}: {argument.Value}"))})";
+        // As a move is written: the keys of the instance it is at after an `@`.
+        private static string Input(TestDesignEdit edit)
+        {
+            string at = edit.At.Count is 0 ? edit.Input : $"{edit.Input}@{string.Join('/', edit.At.Select(static key => key.Value))}";
+            return edit.Arguments.Count is 0
+                ? at
+                : $"{at}({string.Join(", ", edit.Arguments.Select(argument => $"{argument.Key}: {argument.Value}"))})";
+        }
     }
 }
