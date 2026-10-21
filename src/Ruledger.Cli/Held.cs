@@ -104,6 +104,113 @@ namespace Ruledger.Cli
             return documents;
         }
 
+        /// <summary>Gathers the state documents a <c>many</c> names as where its instances start.</summary>
+        /// <param name="ruleSetPath">The document that was asked about.</param>
+        /// <param name="ruleSet">Its text.</param>
+        /// <param name="held">What <see cref="Gather"/> found it holds.</param>
+        /// <param name="ruleSets">What <c>--rulesets</c> said, or null for the default.</param>
+        /// <returns>
+        /// Each document by the name a <c>start</c> gives it, or null when why not has already
+        /// been written to standard error. A rule set whose <c>uses</c> names no start gets an
+        /// empty map and no folder is read.
+        /// </returns>
+        /// <remarks>
+        /// A <c>start</c> names a state document, and the runtime is handed it by that name; it
+        /// is not a rule set, so nothing fetches it, and it is written beside the rule set that
+        /// names it. It is looked for as <c>&lt;name&gt;.json</c> in the same two folders as a
+        /// held rule set, nearest first, and one that is not there is refused rather than walked
+        /// without: a new instance would start somewhere its author did not say.
+        /// </remarks>
+        public static IReadOnlyDictionary<string, string>? Starts(
+            string ruleSetPath,
+            string ruleSet,
+            IReadOnlyDictionary<string, string> held,
+            string? ruleSets)
+        {
+            Dictionary<string, string> documents = new(StringComparer.Ordinal);
+            List<string> names = [.. new[] { ruleSet }.Concat(held.Values).SelectMany(Named).Distinct(StringComparer.Ordinal)];
+
+            if (names.Count is 0)
+            {
+                return documents;
+            }
+
+            IReadOnlyList<string> where = Folders(ruleSetPath, ruleSets);
+            List<string> missing = [];
+
+            foreach (string name in names)
+            {
+                string? found = where.Select(folder => Path.Combine(folder, name + ".json")).FirstOrDefault(File.Exists);
+                if (found is null)
+                {
+                    missing.Add(name);
+                    continue;
+                }
+
+                documents[name] = File.ReadAllText(found);
+            }
+
+            if (missing.Count is not 0)
+            {
+                Console.Error.WriteLine(
+                    $"'{ruleSetPath}' starts instances in state documents that are in neither {string.Join(" nor ", where.Select(Quoted))}:");
+                foreach (string name in missing)
+                {
+                    Console.Error.WriteLine($"  {name}.json");
+                }
+
+                Console.Error.WriteLine();
+                Console.Error.WriteLine("A 'many' names where its new instances start, and without that document a walk");
+                Console.Error.WriteLine("would start them somewhere nobody said. Write it beside the rule set that names it.");
+                return null;
+            }
+
+            return documents;
+        }
+
+        // The `start` of every `many` a document's `uses` declares. Read off the JSON, unlike what
+        // a document holds, because nothing Rulealize publishes says which names a document
+        // starts its instances at: it is handed them by name. A reading here that disagreed with
+        // the runtime's would show as the runtime refusing, by name, a start it was not given,
+        // which is said in its words like any other reason a walk could not begin.
+        private static IEnumerable<string> Named(string ruleSet)
+        {
+            JsonDocument document;
+            try
+            {
+                document = JsonDocument.Parse(ruleSet, new JsonDocumentOptions
+                {
+                    CommentHandling = JsonCommentHandling.Skip,
+                    AllowTrailingCommas = true,
+                });
+            }
+            catch (JsonException)
+            {
+                yield break;
+            }
+
+            using (document)
+            {
+                if (!document.RootElement.TryGetProperty("uses", out JsonElement uses) || uses.ValueKind != JsonValueKind.Array)
+                {
+                    yield break;
+                }
+
+                foreach (JsonElement use in uses.EnumerateArray())
+                {
+                    if (use.ValueKind == JsonValueKind.Object
+                        && use.TryGetProperty("many", out JsonElement many)
+                        && many.ValueKind == JsonValueKind.Object
+                        && many.TryGetProperty("start", out JsonElement start)
+                        && start.ValueKind == JsonValueKind.String
+                        && start.GetString() is { Length: > 0 } name)
+                    {
+                        yield return name;
+                    }
+                }
+            }
+        }
+
         private static IReadOnlyList<string> Folders(string ruleSetPath, string? ruleSets)
         {
             string own = Path.GetDirectoryName(ruleSetPath) is { Length: > 0 } directory ? directory : ".";

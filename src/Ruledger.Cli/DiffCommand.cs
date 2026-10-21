@@ -52,10 +52,15 @@ namespace Ruledger.Cli
                 return Exit.Undone;
             }
 
+            if (Held.Starts(ruleSetPath, ruleSet, held, ruleSets) is not IReadOnlyDictionary<string, string> starts)
+            {
+                return Exit.Undone;
+            }
+
             TestDesignDiff diff;
             try
             {
-                diff = TestDesignDiff.Of(runtime, File.ReadAllText(testDesignPath), ruleSet, held);
+                diff = TestDesignDiff.Of(runtime, File.ReadAllText(testDesignPath), ruleSet, held, starts);
             }
             // As in derive: a guard or `terminal` the runtime faults on stops the walk of the new
             // version, and a test design that began in a state this version does not accept

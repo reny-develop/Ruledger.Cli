@@ -140,6 +140,7 @@ static int Usage()
     Console.Error.WriteLine("        versions are not compared on the same state, or the test design says");
     Console.Error.WriteLine("        nothing about the projections the rule set declares");
     Console.Error.WriteLine();
-    Console.Error.WriteLine("'rulealize restore <rule set>' fills the folders this reads.");
+    Console.Error.WriteLine("'rulealize restore <rule set>' fills the folders this reads. A 'many' that names a");
+    Console.Error.WriteLine("'start' is read from <start>.json beside the rule set, or in --rulesets.");
     return Exit.Misread;
 }
