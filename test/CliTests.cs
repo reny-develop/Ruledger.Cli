@@ -406,6 +406,21 @@ namespace Ruledger.Cli.Tests
             Assert.Contains("\"by\": \"months.create@2026-10\"", File.ReadAllText(written), StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void ObserveSaysTheInstancesOfAMonthAreComparedWhole()
+        {
+            string ruleSet = Copy("claim-month");
+            _ = Copy("claim");
+
+            (int code, string said) = Run(() => ObserveCommand.Run(ruleSet, null));
+
+            Assert.Equal(0, code);
+            Assert.Contains(
+                "  compared on: limit, used\n  instances:   claims, each compared whole\n  dropped:     (nothing)",
+                said.ReplaceLineEndings("\n"),
+                StringComparison.Ordinal);
+        }
+
         private static string Plugins => AppContext.BaseDirectory;
 
         // Standard error is read along with standard output: what a command refuses to do is

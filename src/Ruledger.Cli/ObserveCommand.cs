@@ -50,6 +50,16 @@ namespace Ruledger.Cli
 
             Console.WriteLine(ruleSetPath);
             Console.WriteLine($"  compared on: {Listed(scan.Observed)}");
+
+            // An instance kept as a document of its own has none of its fields above, and is
+            // compared whole; without this line a month would read as compared on its own two
+            // fields and nothing about its claims. Left out where there is none, so a rule set
+            // that keeps none prints what it always printed.
+            if (scan.Collections.Count > 0)
+            {
+                Console.WriteLine($"  instances:   {string.Join(", ", scan.Collections)}, each compared whole");
+            }
+
             Console.WriteLine($"  dropped:     {Listed(scan.Collapsed)}");
 
             return Exit.Done;

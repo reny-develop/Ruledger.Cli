@@ -31,7 +31,8 @@ its own — names a store plugin in `requires`, and `rulealize restore` fetches 
 folder as any vocabulary. The tool never opens that store: the walk keeps the documents in
 memory in its place. Where a `many` names a `start`, the state document new instances begin in
 is read from `<start>.json` beside the rule set, or in `--rulesets`, and a walk without it is
-refused rather than begun somewhere nobody said.
+refused rather than begun somewhere nobody said. `observe` names the collections whose instances are
+compared whole, beside the fields a position is compared on.
 
 What the tool prints is what the `Ruledger` package answers, put into lines for a person. A
 program that wants the answer itself — what a diff found, as values — takes the package, as this
